@@ -25,9 +25,11 @@ function App() {
     };
 
     return (
-        <div className="flex flex-col items-center w-screen h-screen bg-amber-400">
-            <h1 className="text-green-600 text-4xl font-bold mt-8">Todo App</h1>
-            {/* Conditional rendering based on login status */}
+        <div className="flex flex-col w-screen h-screen">
+            <div className='flex flex-row items-center gap-3  px-5 py-4 shadow-md'>
+                <img src="/cei.png" className='w-10 h-10' />
+                <h1 className="text-blue-600 text-2xl font-bold">Todo App</h1>
+            </div>
             {currentUser ? (
                 <TodoList username={currentUser} onLogout={handleLogout} />
             ) : (

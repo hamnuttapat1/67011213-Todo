@@ -1,6 +1,6 @@
 // frontend/src/components/Login.jsx
 import React, { useState } from 'react';
-
+import { FcGoogle } from "react-icons/fc";
 const API_URL = 'http://localhost:5001/api';
 
 function Login({ onLogin }) {
@@ -49,21 +49,43 @@ function Login({ onLogin }) {
     };
 
     return (
-        <div className='flex flex-col w-screen h-screen bg-blue-100'>
-            <div className='flex flex-col '>
-                <h2 className='mb-6 text-2xl font-semibold'>Login (Username Only)</h2>
-                <form onSubmit={handleSubmit}>
-                    <input
-                        type="text"
-                        placeholder="Enter your username"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                    />
-                    <button type="submit">Login</button>
-                </form>
-                {error && <p style={{ color: 'red' }}>{error}</p>}
+            <div className="w-screen h-screen flex items-center justify-center bg-blue-100">
+                <div className="w-80 md:w-110 h-00 bg-white shadow-2xl rounded-3xl p-8 flex flex-col items-center gap-6">
+                    <div className="text-center space-y-1">
+                        <h2 className="text-2xl font-semibold">Login (Username Only)</h2>
+                        <p className="text-sm text-gray-700">Sign in to manage your tasks</p>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="w-full flex flex-col gap-4">
+                        <input
+                            type="text"
+                            placeholder="Enter your username"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white focus:border-green-500 focus:ring-2 focus:ring-green-200 outline-none transition"
+                        />
+                        <button
+                            type="submit"
+                            className="cursor-pointer w-full bg-green-500 text-white py-3 rounded-xl font-semibold shadow hover:bg-green-600 transition"
+                        >
+                            Login
+                        </button>
+                    </form>
+
+                    {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+
+                    <div className="w-full flex items-center gap-3 text-gray-600">
+                        <span className="h-px flex-1 bg-gray-300" />
+                        <span className="text-xs">or</span>
+                        <span className="h-px flex-1 bg-gray-300" />
+                    </div>
+
+                    <button className="cursor-pointer flex items-center justify-center w-full gap-3 bg-white text-gray-800 border border-gray-200 rounded-full py-3 shadow-sm hover:shadow-md transition">
+                        <FcGoogle className="text-xl" />
+                        <span className="font-medium">Sign in with Google</span>
+                    </button>
+                </div>
             </div>
-        </div>
     );
 }
 
