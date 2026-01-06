@@ -147,32 +147,32 @@ function TodoList({ username, onLogout }) {
     });
 
     return (
-        <div className='w-screen h-screen bg-blue-100 p-10'>
-            <div className='max-w-6xl mx-auto'>
-                <div className='flex justify-between items-center mb-8'>
-                    <h2 className='text-3xl font-bold'>Todo List for: {username}</h2>
-                    <button onClick={handleLogout} className='bg-red-500 text-white px-4 py-2 rounded'>Logout</button>
+        <div className='min-h-screen w-full bg-blue-100 overflow-auto'>
+            <div className='max-w-6xl mx-auto p-4 sm:p-6 md:p-10'>
+                <div className='flex flex-row justify-between items-center gap-4 mb-6 md:mb-8'>
+                    <h2 className='text-xl sm:text-2xl md:text-3xl font-bold wrap-break-words'>Todo List for: {username}</h2>
+                    <button onClick={handleLogout} className='bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 whitespace-nowrap shrink-0'>Logout</button>
                 </div>
 
-                <form onSubmit={handleAddTodo} className='bg-white p-6 rounded-lg shadow-md mb-8 flex gap-3'>
+                <form onSubmit={handleAddTodo} className='bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6 md:mb-8 flex flex-col sm:flex-row gap-3'>
                     <input
                         type="text"
                         placeholder="New Task"
                         value={newTask}
                         onChange={(e) => setNewTask(e.target.value)}
-                        className='flex-1 px-4 py-2 border border-gray-300 rounded'
+                        className='flex-1 px-4 py-2 border border-gray-300 rounded w-full'
                     />
                     <input
                         type="datetime-local"
                         value={newDateTime}
                         onChange={(e) => setNewDateTime(e.target.value)}
-                        className='px-4 py-2 border border-gray-300 rounded min-w-max '
+                        className='px-4 py-2 border border-gray-300 rounded w-full sm:w-auto'
                         title="Set task deadline"
                     />
-                    <button type="submit" className='cursor-pointer bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 font-semibold'>Add Task</button>
+                    <button type="submit" className='cursor-pointer bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 font-semibold w-full sm:w-auto'>Add Task</button>
                 </form>
 
-                <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+                <div className='grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6'>
                     {['Todo', 'Doing', 'Done'].map(status => (
                         <div key={status} className='bg-white rounded-lg shadow-md p-4'>
                             <h3 className='text-xl font-semibold mb-4 pb-2 border-b-2 border-gray-300'>{status}</h3>
@@ -181,12 +181,12 @@ function TodoList({ username, onLogout }) {
                                     <p className='text-gray-400 text-center py-4'>No tasks</p>
                                 ) : (
                                     groupedTodos[status].map(todo => (
-                                        <div key={todo.id} className='bg-gray-50 p-3 rounded border border-gray-200 hover:border-gray-400'>
+                                        <div key={todo.id} className='bg-gray-50 p-3 rounded border border-gray-200 hover:border-gray-400 transition-colors'>
                                             <div className='flex justify-between items-start gap-2'>
                                                 <div className='flex-1'>
-                                                    <p className='font-medium'>{todo.task}</p>
+                                                    <p className='font-medium wrap-break-words'>{todo.task}</p>
                                                     {todo.target_datetime && (
-                                                        <p className='text-sm text-blue-600 mt-1'>
+                                                        <p className='text-xs sm:text-sm text-blue-600 mt-1'>
                                                             Deadline: {new Date(todo.target_datetime).toLocaleString()}
                                                         </p>
                                                     )}
@@ -199,14 +199,14 @@ function TodoList({ username, onLogout }) {
                                                 {(todo.status || 'Todo') !== 'Done' && (
                                                     <button
                                                         onClick={() => handleChangeStatus(todo.id, todo.status || 'Todo')}
-                                                        className='flex-1 bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600 cursor-pointer'
+                                                        className='flex-1 bg-blue-500 text-white px-3 py-2 rounded text-sm hover:bg-blue-600 cursor-pointer transition-colors'
                                                     >
                                                         {(todo.status || 'Todo') === 'Doing' ? 'Mark as Done' : 'Next'}
                                                     </button>
                                                 )}
                                                 <button
                                                     onClick={() => handleDeleteTodo(todo.id)}
-                                                    className={`${(todo.status || 'Todo') === 'Done' ? 'w-full' : 'flex-1'} bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 cursor-pointer`}
+                                                    className={`${(todo.status || 'Todo') === 'Done' ? 'w-full' : 'flex-1'} bg-red-500 text-white px-3 py-2 rounded text-sm hover:bg-red-600 cursor-pointer transition-colors`}
                                                 >
                                                     Delete
                                                 </button>
