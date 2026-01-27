@@ -10,8 +10,13 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "axios": "^1.13.3",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "express": "^5.1.0",
+    "express-fileupload": "^1.5.2",
+    "google-auth-library": "^10.5.0",
+    "jsonwebtoken": "^9.0.3",
     "mysql2": "^3.15.3"
   }
 }

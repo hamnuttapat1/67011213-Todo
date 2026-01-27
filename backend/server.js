@@ -3,13 +3,27 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
+const fileUpload = require('express-fileupload');
+const path = require('path');
+const { OAuth2Client } = require('google-auth-library');
+const axios = require('axios');
 
 const app = express();
 const port = 5001;
+const SALT_ROUNDS = 10;
+const GOOGLE_CLIENT_ID = "734483986460-4de02vp23cflpjnnr9t349p6mqgu7avm.apps.googleusercontent.com";
+const RECAPTCHA_SECRET_KEY = "6LeyGlgsAAAAAERWVaQU9jMLLL1CpRLLP5ZHZXJ8";
+const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // Middleware setup
 app.use(cors()); // Allow cross-origin requests from React frontend
 app.use(express.json()); // Enable reading JSON data from request body
+app.use(fileUpload({
+    createParentPath: true,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max file size
+}));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploaded files
 
 // --- MySQL Connection Setup ---
 const db = mysql.createConnection({
@@ -28,22 +42,294 @@ db.connect(err => {
 });
 
 // ------------------------------------
-// API: Authentication (Username Only)
+// API: Authentication
 // ------------------------------------
-app.post('/api/login', (req, res) => {
-    // In this simplified system, we grant "login" access if a username is provided.
-    // WARNING: This is highly insecure and should not be used in a real-world app.
-    const { username } = req.body;
-    if (!username) {
-        return res.status(400).send({ message: 'Username is required' });
-    }
 
-    // Success response includes the username
-    res.send({
-        success: true,
-        message: 'Login successful',
-        user: { username: username }
-    });
+// 1. REGISTER: Create new user account
+app.post('/api/register', async (req, res) => {
+    try {
+        const { full_name, username, password } = req.body;
+
+        // Validation
+        if (!full_name || !username || !password) {
+            return res.status(400).json({ message: 'Full name, username, and password are required' });
+        }
+
+        if (password.length < 6) {
+            return res.status(400).json({ message: 'Password must be at least 6 characters' });
+        }
+
+        // Check if username already exists
+        const checkUserSql = 'SELECT id FROM users WHERE username = ?';
+        db.query(checkUserSql, [username], async (err, results) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ message: 'Database error' });
+            }
+
+            if (results.length > 0) {
+                return res.status(400).json({ message: 'Username already exists' });
+            }
+
+            // Hash password with salt
+            const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
+
+            // Handle profile image upload
+            let profile_image = null;
+            if (req.files && req.files.profile_image) {
+                const file = req.files.profile_image;
+                const fileName = `${Date.now()}_${file.name}`;
+                const uploadPath = path.join(__dirname, 'uploads', fileName);
+
+                await file.mv(uploadPath);
+                profile_image = `/uploads/${fileName}`;
+            }
+
+            // Insert new user
+            const insertSql = 'INSERT INTO users (full_name, username, password_hash, profile_image) VALUES (?, ?, ?, ?)';
+            db.query(insertSql, [full_name, username, password_hash, profile_image], (insertErr, result) => {
+                if (insertErr) {
+                    console.error('Error creating user:', insertErr);
+                    return res.status(500).json({ message: 'Error creating user' });
+                }
+
+                res.status(201).json({
+                    success: true,
+                    message: 'User registered successfully',
+                    user: { id: result.insertId, username, full_name, profile_image }
+                });
+            });
+        });
+    } catch (error) {
+        console.error('Registration error:', error);
+        res.status(500).json({ message: 'Server error during registration' });
+    }
+});
+
+// 2. LOGIN: Authenticate with username and password
+app.post('/api/login', async (req, res) => {
+    try {
+        const { username, password, captcha } = req.body;
+
+        // Validation
+        if (!username || !password) {
+            return res.status(400).json({ message: 'Username and password are required' });
+        }
+
+        // Verify CAPTCHA
+        if (!captcha) {
+            return res.status(400).json({ message: 'CAPTCHA is required' });
+        }
+
+        try {
+            const captchaResponse = await axios.post(
+                `https://www.google.com/recaptcha/api/siteverify`,
+                null,
+                {
+                    params: {
+                        secret: RECAPTCHA_SECRET_KEY,
+                        response: captcha
+                    }
+                }
+            );
+
+            if (!captchaResponse.data.success) {
+                return res.status(400).json({ message: 'CAPTCHA verification failed' });
+            }
+        } catch (captchaError) {
+            console.error('CAPTCHA verification error:', captchaError);
+            return res.status(500).json({ message: 'CAPTCHA verification error' });
+        }
+
+        // Find user
+        const sql = 'SELECT id, full_name, username, password_hash, profile_image FROM users WHERE username = ?';
+        db.query(sql, [username], async (err, results) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ message: 'Database error' });
+            }
+
+            if (results.length === 0) {
+                return res.status(401).json({ message: 'Invalid username or password' });
+            }
+
+            const user = results[0];
+
+            // Verify password
+            const passwordMatch = await bcrypt.compare(password, user.password_hash);
+            if (!passwordMatch) {
+                return res.status(401).json({ message: 'Invalid username or password' });
+            }
+
+            // Update last login
+            db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
+
+            res.json({
+                success: true,
+                message: 'Login successful',
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    full_name: user.full_name,
+                    profile_image: user.profile_image
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(500).json({ message: 'Server error during login' });
+    }
+});
+
+// 3. GOOGLE LOGIN: Authenticate with Google OAuth
+app.post('/api/google-login', async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({ message: 'Token is required' });
+        }
+
+        // Verify Google token
+        const ticket = await client.verifyIdToken({
+            idToken: token,
+            audience: GOOGLE_CLIENT_ID,
+        });
+
+        const payload = ticket.getPayload();
+        const google_id = payload['sub'];
+        const email = payload['email'];
+        const full_name = payload['name'];
+        const profile_image = payload['picture'];
+
+        // Check if user exists with this Google ID
+        const checkSql = 'SELECT id, username, full_name, profile_image FROM users WHERE google_id = ?';
+        db.query(checkSql, [google_id], (err, results) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ message: 'Database error' });
+            }
+
+            if (results.length > 0) {
+                // User exists, update their info
+                const user = results[0];
+                const updateSql = 'UPDATE users SET full_name = ?, profile_image = ?, last_login = NOW() WHERE id = ?';
+                db.query(updateSql, [full_name, profile_image, user.id], (updateErr) => {
+                    if (updateErr) console.error('Error updating user:', updateErr);
+                });
+
+                return res.json({
+                    success: true,
+                    message: 'Login successful',
+                    user: {
+                        id: user.id,
+                        username: user.username,
+                        full_name: full_name,
+                        profile_image: profile_image
+                    }
+                });
+            } else {
+                // Create new user from Google account
+                const username = email.split('@')[0]; // Use email prefix as username
+                const insertSql = 'INSERT INTO users (full_name, username, google_id, profile_image) VALUES (?, ?, ?, ?)';
+
+                db.query(insertSql, [full_name, username, google_id, profile_image], (insertErr, result) => {
+                    if (insertErr) {
+                        console.error('Error creating Google user:', insertErr);
+                        return res.status(500).json({ message: 'Error creating user account' });
+                    }
+
+                    res.status(201).json({
+                        success: true,
+                        message: 'Account created and login successful',
+                        user: {
+                            id: result.insertId,
+                            username: username,
+                            full_name: full_name,
+                            profile_image: profile_image
+                        }
+                    });
+                });
+            }
+        });
+    } catch (error) {
+        console.error('Google login error:', error);
+        res.status(500).json({ message: 'Error during Google authentication' });
+    }
+});
+
+// 4. UPDATE PROFILE: full_name, password, profile image
+app.put('/api/profile/:username', async (req, res) => {
+    try {
+        const { username } = req.params;
+        const { full_name, password } = req.body;
+
+        // Fetch existing user
+        db.query('SELECT id, username FROM users WHERE username = ?', [username], async (findErr, rows) => {
+            if (findErr) {
+                console.error('Database error:', findErr);
+                return res.status(500).json({ message: 'Database error' });
+            }
+            if (rows.length === 0) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            const updates = [];
+            const values = [];
+
+            if (full_name) {
+                updates.push('full_name = ?');
+                values.push(full_name);
+            }
+
+            if (password) {
+                if (password.length < 6) {
+                    return res.status(400).json({ message: 'Password must be at least 6 characters' });
+                }
+                const password_hash = await bcrypt.hash(password, SALT_ROUNDS);
+                updates.push('password_hash = ?');
+                values.push(password_hash);
+            }
+
+            // Handle optional profile image
+            if (req.files && req.files.profile_image) {
+                const file = req.files.profile_image;
+                const fileName = `${Date.now()}_${file.name}`;
+                const uploadPath = path.join(__dirname, 'uploads', fileName);
+                await file.mv(uploadPath);
+                const profile_image = `/uploads/${fileName}`;
+                updates.push('profile_image = ?');
+                values.push(profile_image);
+            }
+
+            if (updates.length === 0) {
+                return res.status(400).json({ message: 'No changes provided' });
+            }
+
+            values.push(username);
+            const updateSql = `UPDATE users SET ${updates.join(', ')}, last_login = NOW() WHERE username = ?`;
+
+            db.query(updateSql, values, (updateErr) => {
+                if (updateErr) {
+                    console.error('Error updating profile:', updateErr);
+                    return res.status(500).json({ message: 'Error updating profile' });
+                }
+
+                // Return updated user
+                db.query('SELECT id, username, full_name, profile_image FROM users WHERE username = ?', [username], (selErr, resultRows) => {
+                    if (selErr || resultRows.length === 0) {
+                        console.error('Error fetching updated user:', selErr);
+                        return res.status(500).json({ message: 'Error fetching updated user' });
+                    }
+                    const user = resultRows[0];
+                    res.json({ success: true, user, message: 'Profile updated successfully' });
+                });
+            });
+        });
+    } catch (error) {
+        console.error('Profile update error:', error);
+        res.status(500).json({ message: 'Server error during profile update' });
+    }
 });
 
 // ------------------------------------
