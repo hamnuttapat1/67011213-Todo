@@ -167,22 +167,167 @@ function TodoList({ user, onLogout, onUserUpdate }) {
     return (
         <div className='min-h-screen w-full bg-blue-100 overflow-auto'>
             <div className='max-w-6xl mx-auto p-4 sm:p-6 md:p-10'>
-                <div className='flex flex-row justify-between items-center gap-4 mb-6 md:mb-8'>
-                    <div className='flex items-center gap-3 min-w-0'>
-                        <div className='w-12 h-12 rounded-full bg-blue-200 overflow-hidden flex-shrink-0 border border-blue-300'>
-                            {profileImage ? (
-                                <img src={profileImage} alt="Profile" className='w-full h-full object-cover' />
-                            ) : (
-                                <div className='w-full h-full flex items-center justify-center text-blue-700 font-semibold'>
-                                    {username ? username.charAt(0).toUpperCase() : '?'}
-                                </div>
-                            )}
+                <div className='flex flex-col gap-3 mb-6 md:mb-8'>
+                    <div className='flex flex-row justify-between items-center gap-4'>
+                        <div className='flex items-center gap-3 min-w-0'>
+                            <div className='w-12 h-12 rounded-full bg-blue-200 overflow-hidden flex-shrink-0 border border-blue-300'>
+                                {profileImagePreview ? (
+                                    <img src={profileImagePreview} alt="Profile" className='w-full h-full object-cover' />
+                                ) : (
+                                    <div className='w-full h-full flex items-center justify-center text-blue-700 font-semibold'>
+                                        {username ? username.charAt(0).toUpperCase() : '?'}
+                                    </div>
+                                )}
+                            </div>
+                            <div className='flex flex-col min-w-0'>
+                                <h2 className='text-xl sm:text-2xl md:text-3xl font-bold wrap-break-words truncate'>
+                                    Todo List for: {username}
+                                </h2>
+                                {user?.full_name && (
+                                    <p className='text-sm text-gray-600 truncate'>{user.full_name}</p>
+                                )}
+                            </div>
                         </div>
-                        <h2 className='text-xl sm:text-2xl md:text-3xl font-bold wrap-break-words truncate'>
-                            Todo List for: {username}
-                        </h2>
+                        <div className='flex gap-2'>
+                            <button
+                                onClick={() => setEditOpen(!editOpen)}
+                                className='bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 whitespace-nowrap'
+                            >
+                                {editOpen ? 'Close' : 'Edit Profile'}
+                            </button>
+                            <button onClick={handleLogout} className='bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 whitespace-nowrap'>Logout</button>
+                        </div>
                     </div>
-                    <button onClick={handleLogout} className='bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 whitespace-nowrap shrink-0'>Logout</button>
+
+                    {editOpen && (
+                        <div className='bg-white rounded-lg shadow-md p-4 flex flex-col gap-3'>
+                            <h3 className='text-lg font-semibold'>Update Profile</h3>
+                            <div className='flex items-center gap-3'>
+                                <div className='w-14 h-14 rounded-full bg-gray-200 overflow-hidden border'>
+                                    {profileImagePreview ? (
+                                        <img src={profileImagePreview} alt="Preview" className='w-full h-full object-cover' />
+                                    ) : (
+                                        <div className='w-full h-full flex items-center justify-center text-gray-500'>
+                                            {username ? username.charAt(0).toUpperCase() : '?'}
+                                        </div>
+                                    )}
+                                </div>
+                                <label className='cursor-pointer text-sm text-blue-600 hover:text-blue-700'>
+                                    Change Photo
+                                    <input
+                                        type='file'
+                                        accept='image/*'
+                                        className='hidden'
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (!file) return;
+                                            if (file.size > 5 * 1024 * 1024) {
+                                                setEditError('Image size must be less than 5MB');
+                                                return;
+                                            }
+                                            setEditImageFile(file);
+                                            setProfileImagePreview(URL.createObjectURL(file));
+                                        }}
+                                    />
+                                </label>
+                            </div>
+
+                            <div className='grid grid-cols-1 md:grid-cols-2 gap-3'>
+                                <div className='flex flex-col gap-1'>
+                                    <label className='text-sm text-gray-600'>Full Name</label>
+                                    <input
+                                        type='text'
+                                        value={editFullName}
+                                        onChange={(e) => setEditFullName(e.target.value)}
+                                        className='px-3 py-2 border rounded'
+                                    />
+                                </div>
+                                <div className='flex flex-col gap-1'>
+                                    <label className='text-sm text-gray-600'>New Password (optional)</label>
+                                    <input
+                                        type='password'
+                                        value={editPassword}
+                                        onChange={(e) => setEditPassword(e.target.value)}
+                                        className='px-3 py-2 border rounded'
+                                        placeholder='Leave blank to keep current'
+                                    />
+                                </div>
+                                <div className='flex flex-col gap-1'>
+                                    <label className='text-sm text-gray-600'>Confirm New Password</label>
+                                    <input
+                                        type='password'
+                                        value={editConfirmPassword}
+                                        onChange={(e) => setEditConfirmPassword(e.target.value)}
+                                        className='px-3 py-2 border rounded'
+                                    />
+                                </div>
+                            </div>
+
+                            {editError && <p className='text-sm text-red-600'>{editError}</p>}
+                            {editSuccess && <p className='text-sm text-green-600'>{editSuccess}</p>}
+
+                            <div className='flex gap-2'>
+                                <button
+                                    onClick={async () => {
+                                        setEditError('');
+                                        setEditSuccess('');
+
+                                        if (editPassword && editPassword !== editConfirmPassword) {
+                                            setEditError('Passwords do not match');
+                                            return;
+                                        }
+
+                                        const formData = new FormData();
+                                        if (editFullName) formData.append('full_name', editFullName);
+                                        if (editPassword) formData.append('password', editPassword);
+                                        if (editImageFile) formData.append('profile_image', editImageFile);
+
+                                        setEditLoading(true);
+                                        try {
+                                            const resp = await fetch(`${API_URL}/profile/${username}`, {
+                                                method: 'PUT',
+                                                body: formData
+                                            });
+                                            const data = await resp.json();
+                                            if (!resp.ok || !data.success) {
+                                                setEditError(data.message || 'Update failed');
+                                            } else {
+                                                setEditSuccess('Profile updated');
+                                                const updatedUser = {
+                                                    ...user,
+                                                    ...data.user
+                                                };
+                                                onUserUpdate && onUserUpdate(updatedUser);
+                                            }
+                                        } catch (err) {
+                                            console.error('Profile update error:', err);
+                                            setEditError('Network error updating profile');
+                                        } finally {
+                                            setEditLoading(false);
+                                        }
+                                    }}
+                                    className='bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400'
+                                    disabled={editLoading}
+                                >
+                                    {editLoading ? 'Saving...' : 'Save Changes'}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setEditOpen(false);
+                                        setEditError('');
+                                        setEditSuccess('');
+                                        setEditPassword('');
+                                        setEditConfirmPassword('');
+                                        setEditImageFile(null);
+                                        setProfileImagePreview(resolvedProfileImage);
+                                    }}
+                                    className='bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300'
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <form onSubmit={handleAddTodo} className='bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6 md:mb-8 flex flex-col sm:flex-row gap-3'>
