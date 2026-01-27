@@ -213,20 +213,32 @@ app.post('/api/google-login', async (req, res) => {
             if (results.length > 0) {
                 // User exists, update their info
                 const user = results[0];
-                const updateSql = 'UPDATE users SET full_name = ?, profile_image = ?, last_login = NOW() WHERE id = ?';
-                db.query(updateSql, [full_name, profile_image, user.id], (updateErr) => {
-                    if (updateErr) console.error('Error updating user:', updateErr);
-                });
+                // Preserve locally uploaded avatar (stored as /uploads/...). Only overwrite if none or existing is a Google URL.
+                const shouldUpdateImage = !user.profile_image || user.profile_image.startsWith('http');
+                const updateFields = ['full_name = ?'];
+                const updateValues = [full_name];
+                if (shouldUpdateImage) {
+                    updateFields.push('profile_image = ?');
+                    updateValues.push(profile_image);
+                }
+                updateFields.push('last_login = NOW()');
+                const updateSql = `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`;
+                updateValues.push(user.id);
 
-                return res.json({
-                    success: true,
-                    message: 'Login successful',
-                    user: {
-                        id: user.id,
-                        username: user.username,
-                        full_name: full_name,
-                        profile_image: profile_image
-                    }
+                db.query(updateSql, updateValues, (updateErr) => {
+                    if (updateErr) console.error('Error updating user:', updateErr);
+
+                    // Return the actual profile_image from database (preserved if locally uploaded)
+                    return res.json({
+                        success: true,
+                        message: 'Login successful',
+                        user: {
+                            id: user.id,
+                            username: user.username,
+                            full_name: full_name,
+                            profile_image: user.profile_image  // Return database value, not Google value
+                        }
+                    });
                 });
             } else {
                 // Create new user from Google account
