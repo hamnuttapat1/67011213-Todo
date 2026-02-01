@@ -126,12 +126,15 @@ function Login({ onLogin, onSwitchToRegister }) {
                     <span className="h-px flex-1 bg-gray-300" />
                 </div>
 
-                <GoogleLogin
+                <div className="w-80">
+                    <GoogleLogin 
                     onSuccess={handleGoogleLogin}
                     onError={() => {
                         setError('Google login failed. Please try again.');
                     }}
-                />
+                    
+                    />
+                </div>
 
                 <button
                     onClick={onSwitchToRegister}
