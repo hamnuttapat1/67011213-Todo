@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 
 const API_URL = 'http://localhost:5001/api';
 
-function TodoList({ user, onLogout, onUserUpdate }) {
+function TodoList({ user, onLogout, onUserUpdate, onViewTeams }) {
     const username = user?.username || user; // accept either object or raw string
     const resolvedProfileImage = (() => {
         const url = user?.profile_image;
@@ -189,6 +189,12 @@ function TodoList({ user, onLogout, onUserUpdate }) {
                             </div>
                         </div>
                         <div className='flex gap-2'>
+                            <button
+                                onClick={() => onViewTeams && onViewTeams()}
+                                className='bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 whitespace-nowrap'
+                            >
+                                👥 My Teams
+                            </button>
                             <button
                                 onClick={() => setEditOpen(!editOpen)}
                                 className='bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 whitespace-nowrap'

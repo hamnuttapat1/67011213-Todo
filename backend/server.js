@@ -8,6 +8,19 @@ const fileUpload = require('express-fileupload');
 const path = require('path');
 const { OAuth2Client } = require('google-auth-library');
 const axios = require('axios');
+const {
+    createTeam,
+    getUserTeams,
+    getTeamDetails,
+    addTeamMember,
+    removeTeamMember,
+    deleteTeam,
+    createTask,
+    getTeamTasks,
+    updateTaskStatus,
+    updateTask,
+    deleteTask
+} = require('./team-apis');
 
 const app = express();
 const port = 5001;
@@ -344,6 +357,37 @@ app.put('/api/profile/:username', async (req, res) => {
     }
 });
 
+// 5. SEARCH USERS: Find user by username
+app.get('/api/users/search', (req, res) => {
+    try {
+        const { username } = req.query;
+
+        if (!username) {
+            return res.status(400).json({ message: 'Username is required' });
+        }
+
+        const sql = 'SELECT id, username, full_name, profile_image FROM users WHERE username = ?';
+        db.query(sql, [username], (err, results) => {
+            if (err) {
+                console.error('Database error:', err);
+                return res.status(500).json({ message: 'Database error' });
+            }
+
+            if (results.length === 0) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            res.json({
+                success: true,
+                user: results[0]
+            });
+        });
+    } catch (error) {
+        console.error('Search user error:', error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // ------------------------------------
 // API: Todo List (CRUD Operations)
 // ------------------------------------
@@ -422,6 +466,47 @@ app.delete('/api/todos/:id', (req, res) => {
         res.send({ message: 'Todo deleted successfully' });
     });
 });
+
+// ------------------------------------
+// API: Team Management
+// ------------------------------------
+
+// 1. Create a new team
+createTeam(app, db);
+
+// 2. Get all teams for a user
+getUserTeams(app, db);
+
+// 3. Get team details with members
+getTeamDetails(app, db);
+
+// 4. Add a member to a team
+addTeamMember(app, db);
+
+// 5. Remove a member from a team
+removeTeamMember(app, db);
+
+// 6. Delete a team
+deleteTeam(app, db);
+
+// ------------------------------------
+// API: Task Management (Team-based)
+// ------------------------------------
+
+// 1. Create a task for a team
+createTask(app, db);
+
+// 2. Get all tasks for a team
+getTeamTasks(app, db);
+
+// 3. Update task status (admin or assignee only)
+updateTaskStatus(app, db);
+
+// 4. Update task details (admin only)
+updateTask(app, db);
+
+// 5. Delete a task (admin only)
+deleteTask(app, db);
 
 // Start the server
 app.listen(port, () => {
