@@ -1,116 +1,87 @@
-🚀 Features
+TODO application that allows users to create group boards and manage tasks collaboratively.
 
-Group boards: Create/join a group and collaborate on shared tasks.
-Three columns (Kanban‑style):
+Tasks are separated into three columns:
+- 📝 Todo — Tasks to be started
+- 🚧 Doing — Tasks in progress
+- ✅ Done — Completed tasks
 
-Todo → Doing → Done
-Drag or action to move tasks between columns.
+---
 
+## 🚀 Features
 
-CRUD tasks: Create, edit, delete tasks within a group.
-Responsive UI with Tailwind CSS.
-REST API with Node.js + Express.
-MySQL for relational data and group ownership/membership.
-Docker for quick, repeatable environment setup.
+- Create group boards
+- Add tasks inside a group
+- Move tasks between Todo, Doing, and Done
+- Edit and delete tasks
+- Simple and clean UI
 
+---
 
-🛠 Tech Stack
-Frontend: React, Vite, Tailwind CSS
-Backend: Node.js, Express.js
-Database: MySQL
-Tools: Docker & Docker Compose, Git/GitHub, Linux (CLI)
+## 🛠 Tech Stack
 
-📂 Project Structure
-├── backend/
-│   ├── server.js
-│   ├── routes/
-│   ├── controllers/
-│   ├── models/
-│   └── ...
-├── frontend/
-│   ├── src/
-│   ├── public/
-│   └── ...
-├── docker-compose.yml
-├── package.json
-└── README.md
+Frontend:
+- React
+- Vite
+- Tailwind CSS
 
+Backend:
+- Node.js
+- Express
 
-⚙️ Prerequisites
+Database:
+- MySQL
 
-Node.js (LTS recommended)
-Docker Desktop / Docker Engine
-npm
+---
 
+## 📦 Installation
 
-▶️ How to Run
+1. Clone the repository
 
-From the project root
+```bash
+git clone https://github.com/hamnuttapat1/67011213-Todo.git
+cd 67011213-Todo
+```
 
-1) Start MySQL via Docker Compose
-Shelldocker compose up -dShow more lines
-2) Start the Backend
-Shellcd backendnode server.jsShow more lines
-3) Start the Frontend
-Shellcd frontendnpm install   # first time onlynpm run devShow more lines
-Open the app at http://localhost:5173 (default Vite port).
+2. Install backend dependencies
 
-🔐 Environment Variables (examples)
-Create a .env in backend/ as needed:
-PORT=3000
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=todo_app
-CORS_ORIGIN=http://localhost:5173
+```bash
+cd backend
+node server.js
+```
 
-If your docker-compose.yml defines MySQL service names (e.g., db), set DB_HOST=db.
+3. Install frontend dependencies
 
-🧱 Database Model (suggested)
-Groups & tasks with status:
+```bash
+cd frontend
+npm install (First time only)
+npm run dev
+```
 
-groups: id, name, created_at
-users (optional if you add auth later): id, name, email, password_hash
-group_members (optional): group_id, user_id, role
-tasks: id, group_id, title, description, status, created_at, updated_at
+4. Open browser
 
-status is one of: todo | doing | done
+```
+http://localhost:5173
+```
 
-🔌 API Overview (examples)
+---
 
-Adjust names/paths to match your code. These are conventional routes for a group board.
+## 📌 How It Works
 
-Groups
-Plain Texthttp isn’t fully supported. Syntax highlighting is based on Plain Text.GET    /api/groups                 # list groups (optionally by user)POST   /api/groups                 # create a groupGET    /api/groups/:groupId        # get group detailDELETE /api/groups/:groupId        # delete a groupShow more lines
-Tasks (scoped to group)
-Plain Texthttp isn’t fully supported. Syntax highlighting is based on Plain Text.GET    /api/groups/:groupId/tasks              # list tasks in the groupPOST   /api/groups/:groupId/tasks              # create task (status defaults to "todo")GET    /api/groups/:groupId/tasks/:taskId      # get taskPUT    /api/groups/:groupId/tasks/:taskId      # update title/description/statusDELETE /api/groups/:groupId/tasks/:taskId      # delete taskShow more lines
-Move task between columns
-Plain Texthttp isn’t fully supported. Syntax highlighting is based on Plain Text.PATCH  /api/groups/:groupId/tasks/:taskId/status# body: { "status": "todo" | "doing" | "done" }Show more lines
+Each group has its own task board with 3 columns:
 
-💡 UI Behavior (quick notes)
+| Todo | Doing | Done |
+|------|-------|------|
+| Tasks to start | Tasks in progress | Completed tasks |
 
-Default column for new tasks: Todo
-Tasks can be moved: Todo → Doing → Done (and back if needed)
-Each group has its own board and task list
+Users can update task status to move it between columns.
 
+---
 
-🧪 Development Tips
+## 📈 Future Improvements
 
-Use Thunder Client / Postman to test the API quickly.
-Seed some groups/tasks for local dev if helpful.
-Consider adding CORS config to allow the Vite dev server origin.
+- Drag & Drop support
+- Authentication system
+- Task due dates
+- Role management
 
-
-📈 Future Enhancements
-
-Authentication & member roles (Owner/Admin/Member)
-Drag‑and‑drop between columns
-Due dates, tags, and filters
-Activity log / audit trail
-Deployment with Docker on Render/Railway/AWS
-
-
-📜 License
-No license at the moment (all rights reserved).
-Add MIT if you want others to use this project freely.
+---
